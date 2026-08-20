@@ -46,5 +46,33 @@ def test_purchase_more_than_points_is_blocked(client):
 
     # Les points ne doivent pas avoir changé (rien n'a ete reserve)
     assert int(club['points']) == points_avant
-    # Et un message d'erreur doit apparaitre
+    # Un message d'erreur doit apparaitre
     assert b"do not have enough points" in response.data
+
+def test_purchase_more_than_12_places_is_blocked(client):
+    """Bug #3 : un club ne peut reserver plus de 12 places par competition"""
+    # On choisit un club et une competition connus
+    club = next(c for c in server.clubs if c['name'] == "Simply Lift")
+    competition = next(
+        c for c in server.competitions if c['name'] == "Spring Festival"
+    )
+
+    points_avant = int(club['points'])
+    places_demandees = 13 # au dessus de la limite de 12
+
+    response = client.post(
+
+        "/purchasePlaces",
+        data={
+            "competition": competition['name'],
+            "club": club['name'],
+            "places": str(places_demandees),
+        },
+        follow_redirects=True,
+    )
+
+    # Rien ne doit avoir ete debite
+    assert int(club["points"]) == points_avant
+    # Un message erreur doit apparaitre
+    assert b"cannot book more than 12 places" in response.data
+
