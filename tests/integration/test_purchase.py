@@ -23,3 +23,28 @@ def test_purchase_deducts_points_from_club(client):
 
     points_apres = int(club['points'])
     assert points_apres == points_avant - places_reservees
+
+def test_purchase_more_than_points_is_blocked(client):
+    """Bug #2 : un club ne peut pas reserver plus de places qu'il n'a de points."""
+    club = next(c for c in server.clubs if c['name'] == "Iron Temple")  # 4 points
+    competition = next(
+        c for c in server.competitions if c['name'] == "Spring Festival"
+    )
+
+    points_avant = int(club['points'])
+    places_demandees = points_avant + 5  # plus que le solde : impossible
+
+    response = client.post(
+        "/purchasePlaces",
+        data={
+            "competition": competition['name'],
+            "club": club['name'],
+            "places": str(places_demandees),
+        },
+        follow_redirects=True,
+    )
+
+    # Les points ne doivent pas avoir changé (rien n'a ete reserve)
+    assert int(club['points']) == points_avant
+    # Et un message d'erreur doit apparaitre
+    assert b"do not have enough points" in response.data
