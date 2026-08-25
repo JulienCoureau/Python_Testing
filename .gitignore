@@ -3,9 +3,10 @@ include
 lib
 .Python
 .envrc
-__pycache__.DS_Store
 env/
 __pycache__/
 *.pyc
 .DS_Store
 .pytest_cache/
+htmlcov/
+.coverage
