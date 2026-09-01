@@ -1,4 +1,5 @@
 import server
+from datetime import datetime, timedelta
 
 
 def test_purchase_deducts_points_from_club(client):
@@ -8,6 +9,8 @@ def test_purchase_deducts_points_from_club(client):
     competition = next(
         c for c in server.competitions if c['name'] == "Spring Festival"
     )
+    # Competition futur (pour etre bloqu par le controle de date)
+    competition['date'] = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
 
     points_avant = int(club['points'])
     places_reservees = 3
@@ -30,6 +33,8 @@ def test_purchase_more_than_points_is_blocked(client):
     competition = next(
         c for c in server.competitions if c['name'] == "Spring Festival"
     )
+    # Competition futur (pour etre bloqu par le controle de date)
+    competition['date'] = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
 
     points_avant = int(club['points'])
     places_demandees = points_avant + 5  # plus que le solde : impossible
@@ -56,6 +61,8 @@ def test_purchase_more_than_12_places_is_blocked(client):
     competition = next(
         c for c in server.competitions if c['name'] == "Spring Festival"
     )
+    # Competition futur (pour etre bloqu par le controle de date)
+    competition['date'] = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
 
     points_avant = int(club['points'])
     places_demandees = 13 # au dessus de la limite de 12
@@ -82,7 +89,9 @@ def test_purchase_more_than_available_places_is_blocked(client):
     competition = next(
         c for c in server.competitions if c['name'] == "Spring Festival"
     )
-
+    # Competition futur (pour etre bloqu par le controle de date)
+    competition['date'] = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
+    
     # Force une competition presque pleine
     competition['numberOfPlaces'] = "5"
 
@@ -104,3 +113,32 @@ def test_purchase_more_than_available_places_is_blocked(client):
     assert int (competition['numberOfPlaces']) == 5
     # Un message d'erreur doit apparaitre
     assert b"not enough places available" in response.data
+
+def test_purchase_on_past_competition_is_blocked(client):
+    """#bug #5 : impossible de reserver des places sur une competition passee"""
+    club = next(c for c in server.clubs if c['name'] == "Simply Lift")
+
+    # Fausse competition terminee, (injecter dans la donnée en memoire)
+    past_competition = {
+        "name": "Old Cup",
+        "date": (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S"),
+        "numberOfPlaces": "20",
+    }
+    server.competitions.append(past_competition)
+
+    points_avant = int(club['points'])
+
+    response = client.post(
+        "/purchasePlaces",
+        data={
+            "competition" : "Old Cup",
+            "club": club['name'],
+            "places": "1",
+        },
+        follow_redirects=True,
+    )
+
+    # Rien ne doit avoir ete debite
+    assert int(club['points']) == points_avant
+    # le message d'erreur
+    assert b"past competition" in response.data

@@ -1,5 +1,6 @@
 import json
 from flask import Flask,render_template,request,redirect,flash,url_for
+from datetime import datetime
 
 
 def loadClubs():
@@ -59,6 +60,10 @@ def purchasePlaces():
 
     if placesRequired > int (competition['numberOfPlaces']):
         flash("There are not enough places available in this competition")
+        return render_template('welcome.html', club=club, competitions=competitions)
+
+    if datetime.strptime(competition['date'], "%Y-%m-%d %H:%M:%S") < datetime.now():
+        flash("You cannot book places for a past competition")
         return render_template('welcome.html', club=club, competitions=competitions)
     
     if placesRequired > int(club['points']):
