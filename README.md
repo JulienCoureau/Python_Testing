@@ -44,8 +44,39 @@
 
 5. Testing
 
-    You are free to use whatever testing framework you like-the main thing is that you can show what tests you are using.
+    Tests are written with [pytest](https://docs.pytest.org/) and live in the `tests/` folder,
+    organised by type: `tests/integration/` (one file per feature), `tests/functional/`
+    (full user journey) and `tests/performance/` (Locust).
 
-    We also like to show how well we're testing, so there's a module called 
-    [coverage](https://coverage.readthedocs.io/en/coverage-5.1/) you should add to your project.
+    Run the whole suite from the project root:
+
+        pytest
+
+    Measure code coverage (target: at least 60%):
+
+        pytest --cov=server --cov-report=term-missing
+
+    An HTML report can be generated with `--cov-report=html` and opened at `htmlcov/index.html`.
+
+6. Performance testing
+
+    Performance tests use [Locust](https://locust.io/). They require the server to be
+    running. In a first terminal:
+
+        flask --app server run
+
+    In a second terminal:
+
+        locust -f tests/performance/locustfile.py --host http://127.0.0.1:5000
+
+    Then open http://localhost:8089 and start a test with 6 users (the default number
+    required by the specifications). Requirements: page loads under 5 seconds,
+    updates under 2 seconds.
+
+7. Branch organisation
+
+    * `master` — the original code as delivered, with its known bugs, kept as reference.
+    * `qa` — the up-to-date branch combining every fix and feature. **Clone and use this one.**
+    * `bug/*`, `fonctionnalite/*`, `amelioration/*` — one branch per fix or feature,
+      each merged into `qa` through a pull request.
 
